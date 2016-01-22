@@ -1,7 +1,7 @@
 #january 21th 2016
 #this script constructs a Q matrix from a DNS log
 #then it computes QQT, QTQ, Heuristic
-#and format output for classifier
+#and format output for classification purposes
 
 
 import time
@@ -124,7 +124,7 @@ def segmentation(matrix):
     vectorOfGroups = {'2,2':0,'2,4':0,'4,2':0,'4,4':0,'6,2':0,'6,4':0,'EE':0}
     if len(reducedImage) > 1 and len(reducedImage[0]) > 1:
         
-        transposedImg = copyImage(reducedImage) ##COPIA DE LISTA PENDIENTE
+        
         # reducedImage =  [[0,1,0,0,1,0],
         #                  [0,1,1,1,1,0],
         #                  [0,0,1,1,0,0],
@@ -140,11 +140,11 @@ def segmentation(matrix):
         #                  [1,0,1,0,0,1],
         #                  [1,0,0,0,0,1],
         #                  [1,1,1,1,1,1]]
-        reducedImage =  [[0,0,0,0,0],
-                         [0,0,0,0,1],
-                         [0,1,0,0,1],
-                         [0,0,0,0,1],
-                         [0,0,0,0,0]]
+        # reducedImage =  [[0,0,0,0,0],
+        #                  [0,0,0,0,1],
+        #                  [0,1,0,0,1],
+        #                  [0,0,0,0,1],
+        #                  [0,0,0,0,0]]
         # reducedImage =  [[1,0,0,0,0,1],
         #                 [0,1,0,0,1,0],
         #                 [0,0,1,1,0,0],
@@ -164,9 +164,17 @@ def segmentation(matrix):
         # reducedImage =  [[1,0,0,0,0,1],
         #                 [0,0,0,0,0,0],
         #                 [0,1,1,1,1,0],
-        #                 [0,1,0,0,1,0],
+        #                 [0,1,0,0,1,1],
         #                 [0,1,0,0,1,0],
         #                 [0,1,1,1,1,0]]
+
+        #printMatrix(reducedImage)
+        transposedImg = copyImage(reducedImage) ##COPIA DE LISTA PENDIENTE
+        transposedImg = numpy.transpose(reducedImage)
+        
+        #printMatrix(transposedImg)
+        #exit()
+
         exitCondition = 0
         while exitCondition ==0:
             s = 0
@@ -175,9 +183,20 @@ def segmentation(matrix):
                     s+=reducedImage[i][j]
             if s ==0:
                 exitCondition = 1
-                print "<<<<<<<<< NO MORE GROUPS >>>>>"
+                ####print "<<<<<<<<< NO MORE GROUPS >>>>>"
             else:
                 splitRegions(reducedImage,vectorOfGroups)
+        exitCondition = 0
+        while exitCondition ==0:
+            s = 0
+            for i in range(len(transposedImg)):
+                for j in range(len(transposedImg[0])):
+                    s+=transposedImg[i][j]
+            if s ==0:
+                exitCondition = 1
+                ####print "<<<<<<<<< NO MORE GROUPS >>>>>"
+            else:
+                splitRegions(transposedImg,vectorOfGroups)
     else:
         print "skipping window... "
 #    printMatrix(reducedImage)
@@ -188,11 +207,11 @@ def copyImage(img):
         return []
     imgCopy = []
     for row in img:
-        imgCopy = list(row)
+        imgCopy.append(list(row))
     return imgCopy
 
 def splitRegions(img,vectorOfGroups):
-    print "Spliting regions..."  
+    ###print "Spliting regions..."  
     groupsInImg = []
     i = 0
     equalPoints = 0
@@ -200,51 +219,70 @@ def splitRegions(img,vectorOfGroups):
     formingGroup = []
     #vectorOfGroups = {'2,2':0,'2,4':0,'4,2':0,'4,4':0,'6,2':0,'6,4':0,'EE':0}
     while i < len(img):
-        print "Input-->"
-        printMatrix(img)
-        print "i=    ", i 
+        ###print "Input-->"
+        ###printMatrix(img)
+        ###print "i=    ", i 
         currPoints = lookForFirstPoints(img,i,0)
-
-        print "-***-*-*-*-*-*-**"
-        print currPoints
-        print "-***-*-*-*-*-*-**"
+        ###print pastPoints
+        ###print currPoints
+        ###print equalPoints
+        ###print "."
+        ###print "-***-*-*-*-*-*-**"
+        ###print currPoints
+        ###print "-***-*-*-*-*-*-**"
         if currPoints == ([],[]):
             break
         i = currPoints[0][0]
 
         if equalPoints == 1:
-            #first point ([1,1],[1,2]) 
-            #second point([2,1],[2,2])
+            #past point ([0,3],[0,3]) 
+            #curr point ([1,0],[1,1])
             if currPoints[0][1] == pastPoints[0][1] and currPoints[1][1] == pastPoints[1][1]:
                 if abs(currPoints[0][0]-pastPoints[0][0])>1:
-                    print "Nope, almost but..not same group"
+                    ###print "Nope, almost but..not same group"
                     groupDimension(formingGroup,vectorOfGroups)
                     formingGroup = []
                 else:
-                    print "SStill the same group"
+                    ###print "SStill the same group"
+                    pass
                 formingGroup.append([currPoints[0],currPoints[1]])
                 pastPoints = currPoints
             else:
                 #not the same group
                 tempPoints = lookForFirstPoints(img,i,0)
+                ###print tempPoints
+                if tempPoints == ([],[]):
+                    #formingGroup.append([currPoints[0],currPoints[1]])
+                    groupDimension(formingGroup,vectorOfGroups)
+                    formingGroup = []
+                    formingGroup.append([currPoints[0],currPoints[1]])
+                    break
                 if tempPoints[0][1] == pastPoints[0][1] and tempPoints[1][1] == pastPoints[1][1]:
-                    print "-->Still the same group"
+                    #volver a calcular puntos a partir de abajo
+                    #si no es el mismo grupo
+                    #rellenar los puntos de abajo,
+                    #el temporal
+                    #agregar curr y past como dos grupos 
+                    #difrentes
+                    ###print "-->Still the same group"
+                    ###print "<<<<<<<<<<<<<<<",tempPoints
+                    ###print "<<<<<<<<<<<<<<<",pastPoints
                     formingGroup.append([currPoints[0],currPoints[1]])
                     pastPoints = tempPoints
                     i = tempPoints[0][0]+1
-                    print "******",i,"*******"
+                    ###print "******",i,"*******"
                     #fill again the image...
                     fillPoints(img,currPoints)
                     #img[currPoints[0]][currPoints[1]] = 1
                     #
                     continue #to start againt the iteration
                 else:
-                    print "not the same temporal points"
+                    ###print "not the same temporal points"
                     #so i have to fill the image again...
                     fillPoints(img,tempPoints)
 
-                print "Not the same groups as previous>>"
-                print "previous group",formingGroup
+                ###print "Not the same groups as previous>>"
+                ###print "previous group",formingGroup
                 equalPoints = 0
                 #i = 0 #reseting group search
                 #determine size and weight and add it to some list
@@ -255,8 +293,8 @@ def splitRegions(img,vectorOfGroups):
         if currPoints[0] == currPoints[1] and currPoints[0] != [] and equalPoints ==0:
             if pastPoints[0] != [] and pastPoints[1] !=[] and formingGroup != []:
                 if pastPoints[0][1] != currPoints [0][1] or pastPoints[1][1] != currPoints[1][1]:
-                    print ">>not the same groups as previous"
-                    print "previous group",formingGroup
+                    ###print ">>not the same groups as previous"
+                    ###print "previous group",formingGroup
                     #i = 0 #resiting group search
                     #determine size and weight and add it to some list
                     groupDimension(formingGroup,vectorOfGroups)
@@ -268,61 +306,66 @@ def splitRegions(img,vectorOfGroups):
             pastPoints = currPoints
 
         if equalPoints == 0 and currPoints != ([],[]):
-            print "theres is a group somewhere..."
-            print currPoints
-            print pastPoints
+            ###print "theres is a group somewhere..."
+            ###print currPoints
+            ###print pastPoints
             if pastPoints != ([],[]):
                 #print "No previous point...so perhaps "
                 #print "This is first row"
                 if pastPoints[0][1] == currPoints [0][1] and pastPoints[1][1] == currPoints[1][1]:
-                    print "Still the same group..."    
+                    ###print "Still the same group..."    
                     formingGroup.append([currPoints[0],currPoints[1]])
-                    print "----------"
-                    print formingGroup
-                    print i
-                    print "**********"
+                    ###print "----------"
+                    ###print formingGroup
+                    ###print i
+                    ###print "**********"
                 else:
-                    print "No longer the same group"
-                    i = 0 #resiting group search
+                    ###print "No longer the same group"
+                    #i = 0 #resiting group search
                     #determine size and weight and add it to some list
 
                     groupDimension(formingGroup,vectorOfGroups)
                     formingGroup = []
                     #
+                    #fillPoints(img,pastPoints)
+                    #fillPoints(img,currPoints)
+
                     formingGroup.append([currPoints[0],currPoints[1]])
             elif currPoints != ([],[]): #must be the first row
                 formingGroup.append([currPoints[0],currPoints[1]])
             pastPoints = currPoints
         i+=1
     if formingGroup != []:
-        print "At the end of the analysis there still a group..."
+        ###print "At the end of the analysis there still a group..."
         groupDimension(formingGroup,vectorOfGroups)
         formingGroup = []
 
 
-    print "------\n"
-    print "Analysis concluded... groups in the window are: "
-    for key in vectorOfGroups:
-        print key,vectorOfGroups[key]
+    ###print "------\n"
+    ###print "Analysis concluded... groups in the window are: "
+    ###for key in vectorOfGroups:
+    ###    print key,vectorOfGroups[key]
 
     #print vectorOfGroups
 def fillPoints(img,points):
-    print "filling..."
-    print points
-    print img
+    ###print "filling..."
+    ###print points
+    ###print img
     if points[0] == points[1]:
         img[points[0][0]][points[0][1]] = 1
     else:
-        for i in range(points[0][0],len(img)):
-            for j in range(points[0][1],len(img[0])):
+        for i in range(points[0][0],points[1][0]+1):
+            for j in range(points[0][1],points[1][1]+1):
                 img[i][j] = 1
-    print img
+    ###print img
     #exit()
-    pass
+    
 def groupDimension(g,v):
-    print "Now determining structure of group...", g
-    print "******Weight-->", len(g)*2
-    print "******Size-->", abs(g[0][0][1]-g[0][1][1])*2+2
+    ###print "Now determining structure of group...", g
+    ###print "\n"
+    ###print "******Size-->", abs(g[0][0][1]-g[0][1][1])*2+2
+    ###print "******Weight-->", len(g)*2
+    ###print "\n"
     key = str(abs(g[0][0][1]-g[0][1][1])*2+2)+","+str(len(g)*2)
 
     if key not in v:
@@ -341,11 +384,11 @@ def lookForFirstPoints(img,start,columnStart):
         while j < len(img[0]):
             if img[i][j] !=0 and firstPoint == []:
                 firstPoint = [i,j]
-                print "Found first point at: ", firstPoint
+                ###print "Found first point at: ", firstPoint
                 lastPoint = [i,j]
                 img[i][j] = 0 # putting black in img
             elif firstPoint != [] and img[i][j] ==0:
-                print "End of the group..."
+                ###print "End of the group..."
                 break
             elif img[i][j] != 0:
                 img[i][j] = 0
@@ -353,72 +396,10 @@ def lookForFirstPoints(img,start,columnStart):
             j+=1
         i+=1
     if firstPoint == []: # means that no info of grp found
-        print "No groups in that part of image..."
+        ###print "No groups in that part of image..."
         return [],[]
     else:
         return firstPoint,lastPoint
-
-
-def regionGrowing(img):
-    #print "Region Growing technique"
-    #for i in 
-    #img[0][0]= "A"
-    letter = 97
-
-    groupSet = set()
-
-    print "-------\n"
-    printMatrix(img)
-    print "-------\n"   
-
-    for i in range(0,len(img)):
-        for j in range(0,len(img[0])):
-            if img[i][j] != 0:
-                #group !
-                img[i][j] = str(img[i][j])+chr(letter)               
-
-                if i ==0:
-                    #one neighbor on the right
-                    if img[i+1][j] != 0:
-                        img[i+1][j] = str(img[i+1][j])+chr(letter)                        
-                elif i == (len(img)-1):
-                    #one neighbor on the left
-                    if img[i-1][j] != 0:
-                        img[i-1][j] = str(img[i-1][j])+chr(letter)
-                else:
-                    #two neighbors (right and left)
-                    if img[i+1][j] != 0:
-                        img[i+1][j] = str(img[i+1][j])+chr(letter)                        
-                    if img[i-1][j] != 0:
-                        img[i-1][j] = str(img[i-1][j])+chr(letter)
-
-                if j ==0:
-                    #one neighbor bottom
-                    if  img[i][j+1] != 0:
-                        img[i][j+1] = str(img[i][j+1])+chr(letter)
-                elif j == (len(img[0])-1):
-                    #one neightboor top
-                    if  img[i][j-1] != 0:
-                        img[i][j-1] = str(img[i][j-1])+chr(letter)
-                    
-                else:
-                    #two neigbors (top and bottom)
-                    
-                    if  img[i][j-1] != 0:
-                        img[i][j-1] = str(img[i][j-1])+chr(letter)
-
-                    if  img[i][j+1] != 0:
-                        img[i][j+1] = str(img[i][j+1])+chr(letter)
-
-                letter+=1                  
-    
-
-    for i in range(0,len(img)):
-        for j in range(0,len(img[0])):
-            #print img[i][j]
-
-            groupSet.add(img[i][j])
-
 
 
 def printMatrix(m):
@@ -538,7 +519,6 @@ for line in f:
             #print w, "ahora es", newColumnIndex
             newColumnIndex+=1
             
-
         #adding sorted rows to a new list
 
         for r in sortedActivity:
@@ -562,18 +542,9 @@ for line in f:
             # agt2 has more activity than agt1. This is because we are talking about a 'binary sorting'
 
             array[query[0]][query[1]]=1
-
-        #print array
-        #print ipIndex
-        #print domainIndex
-        #print "------"
         ## HEURISTIC
-
-        #segmentation(array)
-
-        ##
+        totalGroups = segmentation(array)
         ###WINDOW FEATURES
-
         H_obj = 0
         H_agt = 0
 
@@ -585,11 +556,9 @@ for line in f:
         H_obj*=-1
         H_agt*=-1
      
-        _output+=str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","
+        ##_output+=str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","
 
-        #print _output
-
-       
+               
         QQT = numpy.dot(array,numpy.transpose(array))
 
         weight_two = 0
@@ -598,19 +567,12 @@ for line in f:
         
 
         for i in range(1,len(array)): # sliding through diagonals
-            
-            #print QQT.diagonal(i)
-            #print numpy.count_nonzero(QQT.diagonal(i) >= 2)
             weight_two+=numpy.count_nonzero(QQT.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
             if QQT.diagonal(i).max() > maximalSize:
                 maximalSize =QQT.diagonal(i).max()
                 
         topActAgt = QQT.diagonal(0).max()
-        # print weight_two
-        # print topActAgt
-        # print maximalSize
-        # print "QTQ Features"
-
+       
         ##Second QTQ
         QTQ = numpy.dot(numpy.transpose(array),array)
         
@@ -618,22 +580,20 @@ for line in f:
         topActObj = 0
         maximalWeight=1
         for i in range(1,len(array[0])): # sliding through diagonals
-            #print QTQ.diagonal(i)
-            #print numpy.count_nonzero(QTQ.diagonal(i) >= 2)
+            
             weight_two+=numpy.count_nonzero(QTQ.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
             if QTQ.diagonal(i).max() > maximalWeight:
                 maximalWeight =QTQ.diagonal(i).max()
                 
         topActObj = QTQ.diagonal(0).max()
 
-        # print size_two
-        # print topActObj
-        # print maximalWeight
+        ##_output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)+","
 
-        _output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)
+        _output+= str(totalGroups['2,2'])+","+str(totalGroups['2,4'])+","+str(totalGroups['4,2'])+","+str(totalGroups['4,4'])+","+str(totalGroups['6,2'])+","+str(totalGroups['6,4'])+","+str(totalGroups['EE'])
+
         print _output
-        ##
-        time.sleep(1)
+       
+
         #variables reset
         array=0
         ipIndex = 0
@@ -645,9 +605,7 @@ for line in f:
         binaryActivity = []
         probDomain = {}
         probIP = {}
-
-        ###
-        exit()
+        _output = ""
 
     windowCounter+=1
 
