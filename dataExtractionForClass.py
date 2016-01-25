@@ -8,6 +8,7 @@ import time
 import numpy, scipy.io
 import sys
 import datetime
+import os
 #import Image
 
 
@@ -19,7 +20,7 @@ windowSize = int(sys.argv[2])
 
 
 windowCounter = 1
-#windowSize=50
+
 
 ipIndex = 0 # number of unique IP addresses
 domainIndex = 0 #number of unique domain addresses
@@ -59,34 +60,6 @@ def lookForDomain(stringDomain):
     return index
 
 def segmentation(matrix):
-
-    # matrix = [[0,0,0,2,1,1],
-    #           [0,1,0,1,0,0],
-    #           [1,0,0,0,0,0],
-    #           [0,1,0,0,0,0],
-    #           [0,0,1,0,0,0],
-    #           [0,0,0,1,0,0]]
-
-    matrix = [[0,1,0,0,0,0],
-              [1,0,0,0,1,0],
-              [0,0,1,1,0,0],
-              [0,0,1,1,0,0],
-              [0,0,0,0,1,1],
-              [0,0,1,1,0,0]]
-    # matrix = [[0,1,0,0,0,0],
-    #           [1,0,0,0,1,0],
-    #           [0,0,1,1,0,0],
-    #           [0,0,1,1,0,0],
-    #           [0,0,0,0,1,1],
-    #           [0,0,1,1,0,0]]
-        
-
-    # #print "initializaing segmentation"
-    #printMatrix(matrix)
-    ipIndex = len(matrix[0]) #### temporal quitar
-    domainIndex = len(matrix) #### temporal quitar
-
-
     totalRows = ipIndex
     totalColumns = domainIndex
     
@@ -107,7 +80,7 @@ def segmentation(matrix):
             #print matrix[cellIndexes[0]][cellIndexes[1]]
             if matrix[cellIndexes[0]][cellIndexes[1]] > 0:
                 squareAdd+=1
-        if squareAdd >= 2: # if square is 50% of ones flag square as 1
+        if squareAdd >= 3: # if square is 50% of ones flag square as 1
             #print "group"
             tempList.append(1)
         else:
@@ -123,8 +96,6 @@ def segmentation(matrix):
     #printMatrix(reducedImage)
     vectorOfGroups = {'2,2':0,'2,4':0,'4,2':0,'4,4':0,'6,2':0,'6,4':0,'EE':0}
     if len(reducedImage) > 1 and len(reducedImage[0]) > 1:
-        
-        
         # reducedImage =  [[0,1,0,0,1,0],
         #                  [0,1,1,1,1,0],
         #                  [0,0,1,1,0,0],
@@ -196,9 +167,10 @@ def segmentation(matrix):
                 exitCondition = 1
                 ####print "<<<<<<<<< NO MORE GROUPS >>>>>"
             else:
-                splitRegions(transposedImg,vectorOfGroups)
+                splitRegions(transposedImg,vectorOfGroups,1)
     else:
-        print "skipping window... "
+        ###print "skipping window... "
+        pass
 #    printMatrix(reducedImage)
     return vectorOfGroups
 
@@ -210,7 +182,7 @@ def copyImage(img):
         imgCopy.append(list(row))
     return imgCopy
 
-def splitRegions(img,vectorOfGroups):
+def splitRegions(img,vectorOfGroups,op=0):
     ###print "Spliting regions..."  
     groupsInImg = []
     i = 0
@@ -240,7 +212,7 @@ def splitRegions(img,vectorOfGroups):
             if currPoints[0][1] == pastPoints[0][1] and currPoints[1][1] == pastPoints[1][1]:
                 if abs(currPoints[0][0]-pastPoints[0][0])>1:
                     ###print "Nope, almost but..not same group"
-                    groupDimension(formingGroup,vectorOfGroups)
+                    groupDimension(formingGroup,vectorOfGroups,op)
                     formingGroup = []
                 else:
                     ###print "SStill the same group"
@@ -253,7 +225,7 @@ def splitRegions(img,vectorOfGroups):
                 ###print tempPoints
                 if tempPoints == ([],[]):
                     #formingGroup.append([currPoints[0],currPoints[1]])
-                    groupDimension(formingGroup,vectorOfGroups)
+                    groupDimension(formingGroup,vectorOfGroups,op)
                     formingGroup = []
                     formingGroup.append([currPoints[0],currPoints[1]])
                     break
@@ -286,7 +258,7 @@ def splitRegions(img,vectorOfGroups):
                 equalPoints = 0
                 #i = 0 #reseting group search
                 #determine size and weight and add it to some list
-                groupDimension(formingGroup,vectorOfGroups)
+                groupDimension(formingGroup,vectorOfGroups,op)
                 formingGroup = []
                 #formingGroup.append([currPoints[0],currPoints[1]])
                 pastPoints = currPoints
@@ -297,7 +269,7 @@ def splitRegions(img,vectorOfGroups):
                     ###print "previous group",formingGroup
                     #i = 0 #resiting group search
                     #determine size and weight and add it to some list
-                    groupDimension(formingGroup,vectorOfGroups)
+                    groupDimension(formingGroup,vectorOfGroups,op)
                     formingGroup = []
                     #formingGroup.append([currPoints[0],currPoints[1]])
             equalPoints = 1
@@ -324,7 +296,7 @@ def splitRegions(img,vectorOfGroups):
                     #i = 0 #resiting group search
                     #determine size and weight and add it to some list
 
-                    groupDimension(formingGroup,vectorOfGroups)
+                    groupDimension(formingGroup,vectorOfGroups,op)
                     formingGroup = []
                     #
                     #fillPoints(img,pastPoints)
@@ -337,7 +309,7 @@ def splitRegions(img,vectorOfGroups):
         i+=1
     if formingGroup != []:
         ###print "At the end of the analysis there still a group..."
-        groupDimension(formingGroup,vectorOfGroups)
+        groupDimension(formingGroup,vectorOfGroups,op)
         formingGroup = []
 
 
@@ -360,20 +332,22 @@ def fillPoints(img,points):
     ###print img
     #exit()
     
-def groupDimension(g,v):
+def groupDimension(g,v,op=0):
     ###print "Now determining structure of group...", g
     ###print "\n"
     ###print "******Size-->", abs(g[0][0][1]-g[0][1][1])*2+2
     ###print "******Weight-->", len(g)*2
     ###print "\n"
-    key = str(abs(g[0][0][1]-g[0][1][1])*2+2)+","+str(len(g)*2)
+    if op==0:
+        key = str(abs(g[0][0][1]-g[0][1][1])*2+2)+","+str(len(g)*2)
+    else:
+        key = str(len(g)*2)+","+str(abs(g[0][0][1]-g[0][1][1])*2+2)
+
 
     if key not in v:
         v["EE"]+=1
     else:
         v[key]+=1
-    #print v
-    #exit()
 
 def lookForFirstPoints(img,start,columnStart):
     firstPoint = []
@@ -400,8 +374,6 @@ def lookForFirstPoints(img,start,columnStart):
         return [],[]
     else:
         return firstPoint,lastPoint
-
-
 def printMatrix(m):
     out = ""
     for i in range(0,len(m)):
@@ -426,25 +398,32 @@ probDomain = {}
 #opening file
 f = open(logFile,'r')
 #f = open("/Volumes/HD2/Scripts/MatricesQ/out16feb50.txt",'r')
+directory = "outputWindowSize"+str(windowSize)
 
+if not os.path.exists(directory):
+    os.makedirs(directory)
+
+outputFile = open(directory+"/_out"+logFile[:-4]+str(windowSize)+".out","w")
+packetCounter = 0
 for line in f:
     #print line
     _output = ""
-
+    packetCounter+=1
     data = str(line).split(' ') # splitting a log line
     
     hour = datetime.datetime.strptime(str(data[1])[:-4], '%H:%M:%S').time()
     minHour = datetime.datetime.strptime('09:00:00', '%H:%M:%S').time()
     maxHour = datetime.datetime.strptime('21:00:00', '%H:%M:%S').time()
     
-    ########if not(hour >=minHour and hour <=maxHour):
-    ########    continue
+    if not(hour >=minHour and hour <=maxHour):
+        if hour >= maxHour:
+            break
+        continue
     ipPort = str(data[3]).split('#') #splitting port and ip
 
     ip = lookForIP(ipPort[0]) #getting ip address
     dominio = lookForDomain(data[7]) #getting domain name
 
-    
     if ip not in probIP:
         probIP[ip] = 1.0
     else:
@@ -556,7 +535,7 @@ for line in f:
         H_obj*=-1
         H_agt*=-1
      
-        ##_output+=str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","
+        _output+=str(packetCounter)+","+str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","+str(float(windowSize)/(ipIndex*domainIndex))+","
 
                
         QQT = numpy.dot(array,numpy.transpose(array))
@@ -565,7 +544,6 @@ for line in f:
         topActAgt = 0
         maximalSize=1
         
-
         for i in range(1,len(array)): # sliding through diagonals
             weight_two+=numpy.count_nonzero(QQT.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
             if QQT.diagonal(i).max() > maximalSize:
@@ -581,18 +559,21 @@ for line in f:
         maximalWeight=1
         for i in range(1,len(array[0])): # sliding through diagonals
             
-            weight_two+=numpy.count_nonzero(QTQ.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
+            size_two+=numpy.count_nonzero(QTQ.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
             if QTQ.diagonal(i).max() > maximalWeight:
                 maximalWeight =QTQ.diagonal(i).max()
                 
         topActObj = QTQ.diagonal(0).max()
 
-        ##_output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)+","
+        _output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)+","
 
         _output+= str(totalGroups['2,2'])+","+str(totalGroups['2,4'])+","+str(totalGroups['4,2'])+","+str(totalGroups['4,4'])+","+str(totalGroups['6,2'])+","+str(totalGroups['6,4'])+","+str(totalGroups['EE'])
 
-        print _output
-       
+        #print _output
+        outputFile.write(_output+",-1")
+        outputFile.write("\n")
+
+        #exit()
 
         #variables reset
         array=0
@@ -610,3 +591,4 @@ for line in f:
     windowCounter+=1
 
 f.close()
+outputFile.close()
