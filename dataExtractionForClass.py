@@ -12,54 +12,34 @@ import os
 #import Image
 
 
-if len(sys.argv) < 3:
-    sys.exit('Usage: %s    log-file    windowSize' % sys.argv[0])
 
-logFile = str(sys.argv[1])
-windowSize = int(sys.argv[2])
-
-
-windowCounter = 1
-
-
-ipIndex = 0 # number of unique IP addresses
-domainIndex = 0 #number of unique domain addresses
-
-_output = ""
-
-
-ipDict = {}
-domainDict = {}
-
-activity = []
-binaryActivity = [] # binary activity (1 -> visited) (0-> not visited)
-sortedActivity = []
-matVarIndex = 0
-matVarDict = {}
-
-def lookForIP(stringIP):
+def lookForIP(stringIP,ipDict,ipIndex):
     index = 0
-    global ipIndex, ipDict
+   
+    #global ipIndex, ipDict
     if stringIP not in ipDict:
         ipDict[stringIP] = ipIndex
         index = ipIndex
         ipIndex+=1
+        #print "Sumando"
+        #print ipIndex
+        #exit()
     else:
         index = ipDict[stringIP]
-    return index
+    return index,ipIndex
 
-def lookForDomain(stringDomain):
+def lookForDomain(stringDomain,domainDict,domainIndex):
     index = 0
-    global domainIndex, domainIndex
+    #global domainIndex, domainIndex
     if stringDomain not in domainDict:
         domainDict[stringDomain] = domainIndex
         index = domainIndex
         domainIndex+=1
     else:
         index = domainDict[stringDomain]
-    return index
+    return index,domainIndex
 
-def segmentation(matrix):
+def segmentation(matrix,ipIndex,domainIndex):
     totalRows = ipIndex
     totalColumns = domainIndex
     
@@ -392,203 +372,243 @@ def zeroMatrix(rows,columns):
         tempRow=[]
     return matrix
 
-probIP = {}
-probDomain = {}
 
-#opening file
-f = open(logFile,'r')
-#f = open("/Volumes/HD2/Scripts/MatricesQ/out16feb50.txt",'r')
-directory = "outputWindowSize"+str(windowSize)
 
-if not os.path.exists(directory):
-    os.makedirs(directory)
 
-outputFile = open(directory+"/_out"+logFile[:-4]+str(windowSize)+".out","w")
-packetCounter = 0
-for line in f:
-    #print line
+
+def initProgram(logFile,windowSize,typeOfLog,directory,windowCounter):
+    #opening file
+    ipIndex = 0 # number of unique IP addresses
+    domainIndex = 0 #number of unique domain addresses
     _output = ""
-    packetCounter+=1
-    data = str(line).split(' ') # splitting a log line
-    
-    hour = datetime.datetime.strptime(str(data[1])[:-4], '%H:%M:%S').time()
-    minHour = datetime.datetime.strptime('09:00:00', '%H:%M:%S').time()
-    maxHour = datetime.datetime.strptime('21:00:00', '%H:%M:%S').time()
-    
-    if not(hour >=minHour and hour <=maxHour):
-        if hour >= maxHour:
-            break
-        continue
-    ipPort = str(data[3]).split('#') #splitting port and ip
 
-    ip = lookForIP(ipPort[0]) #getting ip address
-    dominio = lookForDomain(data[7]) #getting domain name
+    ipDict = {}
+    domainDict = {}
+    activity = []
+    binaryActivity = [] # binary activity (1 -> visited) (0-> not visited)
+    sortedActivity = []
+    matVarIndex = 0
+    matVarDict = {}
 
-    if ip not in probIP:
-        probIP[ip] = 1.0
-    else:
-        probIP[ip] += 1.0
 
-    if dominio not in probDomain:
-        probDomain[dominio] = 1.0
-    else:
-        probDomain[dominio] +=1.0
+    probIP = {}
+    probDomain = {}
 
-    activity.append([ip,dominio]) #activity without sorting
-    #activity.sort()
-    if [ip,dominio] not in binaryActivity:
-        binaryActivity.append([ip,dominio])
+    f = open(logFile,'r')
+    #f = open("/Volumes/HD2/Scripts/MatricesQ/out16feb50.txt",'r')
+    #directory = "outputWindowSize"+str(windowSize)
+    directory+=str(windowSize)
+    if typeOfLog == '-1':
+        directory = "AttackWindowSize"+str(windowSize)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-    if(windowCounter % windowSize == 0):
-        #some process
-        array = numpy.zeros(shape=(ipIndex,domainIndex))
-        binDict = {}
-        sortedRows = []        
-        newIndexList = []
-        newRowIndex = 0
+    outputFile = open(directory+"/_out"+logFile.split("/")[-1][:-4]+str(windowSize)+".out","w")
+    packetCounter = 0
 
-        #creating a binary Q matrix
-        for query in binaryActivity: # query is a relation <IP,domain>
-            if query[0] not in binDict:
-                binDict[query[0]]=1
-            else:
-                binDict[query[0]]+=1
-        
-
-        #sorting matrix row index by activity
-        for w in sorted(binDict, key=binDict.get, reverse=True):
-            #print w, binDict[w]
-            sortedRows.append(w) #appending sorted row index into a list
-            newIndexList.append(newRowIndex)
-            newRowIndex+=1
-
-        #adding sorted rows to a new list
-        for r in activity:
-            count =0
-            for rowIndex in sortedRows:
-                if r[0] == rowIndex:
-                    
-                    rCopy = r
-                    rCopy[0] = count#rowIndex
-                    sortedActivity.append(rCopy)
-                    break
-                else:
-                    count+=1
-
-        #sorting columns according to popularity
-        binDict = {}
-        sortedColumns = []        
-        newIndexList = []
-        newColumnIndex = 0
-
-        sortedActivityTemp = [] #sorted Activity wrt columns and rows
-        #creating a binary Q matrix
-        for query in binaryActivity:
-            #print query[1]
-            if query[1] not in binDict:
-                binDict[query[1]]=1
-            else:
-                binDict[query[1]]+=1
-        
-        #sorting matrix row index by activity
-        for w in sorted(binDict, key=binDict.get, reverse=True):
-            #print w, binDict[w]
-            sortedColumns.append(w) #appending sorted row index into a list
-            #newIndexList.append(newColumnIndex)
-            #print w, "ahora es", newColumnIndex
-            newColumnIndex+=1
-            
-        #adding sorted rows to a new list
-
-        for r in sortedActivity:
-            count =0
-            for columnIndex in sortedColumns:
-                if r[1] == columnIndex: #if r column index equals to sorted col indexes 
-                    
-                    rCopy = r
-                    rCopy[1] = count#columnIndex
-                    sortedActivityTemp.append(rCopy)
-                    break
-                else:
-                    count+=1
-
-        #filling activity of sorted Q matrxix
-
-        for query in sortedActivityTemp:
-            #array[query[0]][query[1]]+=1 #### This is important !! since in principle this  operation
-            #puts together ALL the DNS request in the sorted binary matrix
-            #so, even if activity of agt1 is 100 (to a single objet) and agt2 queries two objects
-            # agt2 has more activity than agt1. This is because we are talking about a 'binary sorting'
-
-            array[query[0]][query[1]]=1
-        ## HEURISTIC
-        totalGroups = segmentation(array)
-        ###WINDOW FEATURES
-        H_obj = 0
-        H_agt = 0
-
-        for k in probDomain:
-            H_obj+=(probDomain[k]/windowSize)*numpy.log2((probDomain[k]/windowSize))
-        
-        for k in probIP:
-            H_agt+=(probIP[k]/windowSize)*numpy.log2((probIP[k])/windowSize)
-        H_obj*=-1
-        H_agt*=-1
-     
-        _output+=str(packetCounter)+","+str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","+str(float(windowSize)/(ipIndex*domainIndex))+","
-
-               
-        QQT = numpy.dot(array,numpy.transpose(array))
-
-        weight_two = 0
-        topActAgt = 0
-        maximalSize=1
-        
-        for i in range(1,len(array)): # sliding through diagonals
-            weight_two+=numpy.count_nonzero(QQT.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
-            if QQT.diagonal(i).max() > maximalSize:
-                maximalSize =QQT.diagonal(i).max()
-                
-        topActAgt = QQT.diagonal(0).max()
-       
-        ##Second QTQ
-        QTQ = numpy.dot(numpy.transpose(array),array)
-        
-        size_two = 0
-        topActObj = 0
-        maximalWeight=1
-        for i in range(1,len(array[0])): # sliding through diagonals
-            
-            size_two+=numpy.count_nonzero(QTQ.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
-            if QTQ.diagonal(i).max() > maximalWeight:
-                maximalWeight =QTQ.diagonal(i).max()
-                
-        topActObj = QTQ.diagonal(0).max()
-
-        _output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)+","
-
-        _output+= str(totalGroups['2,2'])+","+str(totalGroups['2,4'])+","+str(totalGroups['4,2'])+","+str(totalGroups['4,4'])+","+str(totalGroups['6,2'])+","+str(totalGroups['6,4'])+","+str(totalGroups['EE'])
-
-        #print _output
-        outputFile.write(_output+",-1")
-        outputFile.write("\n")
-
-        #exit()
-
-        #variables reset
-        array=0
-        ipIndex = 0
-        domainIndex = 0
-        ipDict = {}
-        domainDict = {}
-        activity = []
-        sortedActivity = []
-        binaryActivity = []
-        probDomain = {}
-        probIP = {}
+    for line in f:
+        #print line
         _output = ""
+        packetCounter+=1
+        data = str(line).split(' ') # splitting a log line
+        
+        hour = datetime.datetime.strptime(str(data[1])[:-4], '%H:%M:%S').time()
+        minHour = datetime.datetime.strptime('09:00:00', '%H:%M:%S').time()
+        maxHour = datetime.datetime.strptime('21:00:00', '%H:%M:%S').time()
+        
+        if not(hour >=minHour and hour <=maxHour):
+            if hour >= maxHour:
+                break
+            continue
+        ipPort = str(data[3]).split('#') #splitting port and ip
 
-    windowCounter+=1
+        ip,ipIndex = lookForIP(ipPort[0],ipDict,ipIndex) #getting ip address
+        dominio,domainIndex = lookForDomain(data[7],domainDict,domainIndex) #getting domain name
+        
+        #print ip
+        #print dominio
 
-f.close()
-outputFile.close()
+        if ip not in probIP:
+            probIP[ip] = 1.0
+        else:
+            probIP[ip] += 1.0
+
+        if dominio not in probDomain:
+            probDomain[dominio] = 1.0
+        else:
+            probDomain[dominio] +=1.0
+
+        activity.append([ip,dominio]) #activity without sorting
+        #activity.sort()
+        if [ip,dominio] not in binaryActivity:
+            binaryActivity.append([ip,dominio])
+
+        if(windowCounter % windowSize == 0):
+            #some process
+            array = numpy.zeros(shape=(ipIndex,domainIndex))
+            binDict = {}
+            sortedRows = []        
+            newIndexList = []
+            newRowIndex = 0
+
+            #creating a binary Q matrix
+            for query in binaryActivity: # query is a relation <IP,domain>
+                if query[0] not in binDict:
+                    binDict[query[0]]=1
+                else:
+                    binDict[query[0]]+=1
+            
+
+            #sorting matrix row index by activity
+            for w in sorted(binDict, key=binDict.get, reverse=True):
+                #print w, binDict[w]
+                sortedRows.append(w) #appending sorted row index into a list
+                newIndexList.append(newRowIndex)
+                newRowIndex+=1
+
+            #adding sorted rows to a new list
+            for r in activity:
+                count =0
+                for rowIndex in sortedRows:
+                    if r[0] == rowIndex:
+                        
+                        rCopy = r
+                        rCopy[0] = count#rowIndex
+                        sortedActivity.append(rCopy)
+                        break
+                    else:
+                        count+=1
+
+            #sorting columns according to popularity
+            binDict = {}
+            sortedColumns = []        
+            newIndexList = []
+            newColumnIndex = 0
+
+            sortedActivityTemp = [] #sorted Activity wrt columns and rows
+            #creating a binary Q matrix
+            for query in binaryActivity:
+                #print query[1]
+                if query[1] not in binDict:
+                    binDict[query[1]]=1
+                else:
+                    binDict[query[1]]+=1
+            
+            #sorting matrix row index by activity
+            for w in sorted(binDict, key=binDict.get, reverse=True):
+                #print w, binDict[w]
+                sortedColumns.append(w) #appending sorted row index into a list
+                #newIndexList.append(newColumnIndex)
+                #print w, "ahora es", newColumnIndex
+                newColumnIndex+=1
+                
+            #adding sorted rows to a new list
+
+            for r in sortedActivity:
+                count =0
+                for columnIndex in sortedColumns:
+                    if r[1] == columnIndex: #if r column index equals to sorted col indexes 
+                        
+                        rCopy = r
+                        rCopy[1] = count#columnIndex
+                        sortedActivityTemp.append(rCopy)
+                        break
+                    else:
+                        count+=1
+
+            #filling activity of sorted Q matrxix
+
+            for query in sortedActivityTemp:
+                #array[query[0]][query[1]]+=1 #### This is important !! since in principle this  operation
+                #puts together ALL the DNS request in the sorted binary matrix
+                #so, even if activity of agt1 is 100 (to a single objet) and agt2 queries two objects
+                # agt2 has more activity than agt1. This is because we are talking about a 'binary sorting'
+
+                array[query[0]][query[1]]=1
+            ## HEURISTIC
+            totalGroups = segmentation(array,ipIndex,domainIndex)
+            ###WINDOW FEATURES
+            H_obj = 0
+            H_agt = 0
+
+            for k in probDomain:
+                H_obj+=(probDomain[k]/windowSize)*numpy.log2((probDomain[k]/windowSize))
+            
+            for k in probIP:
+                H_agt+=(probIP[k]/windowSize)*numpy.log2((probIP[k])/windowSize)
+            H_obj*=-1
+            H_agt*=-1
+         
+            _output+=str(packetCounter)+","+str(ipIndex)+","+str(domainIndex)+","+str(H_agt)+","+str(H_obj)+","+str(len(binaryActivity))+","+str((ipIndex*domainIndex)/float(windowSize))+","+str(float(windowSize)/(ipIndex*domainIndex))+","
+
+                   
+            QQT = numpy.dot(array,numpy.transpose(array))
+
+            weight_two = 0
+            topActAgt = 0
+            maximalSize=1
+            
+            for i in range(1,len(array)): # sliding through diagonals
+                weight_two+=numpy.count_nonzero(QQT.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
+                if QQT.diagonal(i).max() > maximalSize:
+                    maximalSize =QQT.diagonal(i).max()
+                    
+            topActAgt = QQT.diagonal(0).max()
+           
+            ##Second QTQ
+            QTQ = numpy.dot(numpy.transpose(array),array)
+            
+            size_two = 0
+            topActObj = 0
+            maximalWeight=1
+            for i in range(1,len(array[0])): # sliding through diagonals
+                
+                size_two+=numpy.count_nonzero(QTQ.diagonal(i) >= 2) #total elements nonzero from diagonal(i)
+                if QTQ.diagonal(i).max() > maximalWeight:
+                    maximalWeight =QTQ.diagonal(i).max()
+                    
+            topActObj = QTQ.diagonal(0).max()
+
+            _output+= str(topActAgt)+","+str(topActObj)+","+str(maximalSize)+","+str(maximalWeight)+","+str(weight_two)+","+str(size_two)+","
+
+            _output+= str(totalGroups['2,2'])+","+str(totalGroups['2,4'])+","+str(totalGroups['4,2'])+","+str(totalGroups['4,4'])+","+str(totalGroups['6,2'])+","+str(totalGroups['6,4'])+","+str(totalGroups['EE'])
+
+            #print _output
+            outputFile.write(_output+","+typeOfLog)
+            outputFile.write("\n")
+
+            #exit()
+
+            #variables reset
+            array=0
+            ipIndex = 0
+            domainIndex = 0
+            ipDict = {}
+            domainDict = {}
+            activity = []
+            sortedActivity = []
+            binaryActivity = []
+            probDomain = {}
+            probIP = {}
+            _output = ""
+
+        windowCounter+=1
+
+    f.close()
+    outputFile.close()
+
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 5:
+        sys.exit('Usage: %s    log-file    windowSize      Attack(-1)/Normal(1)    output-directory' % sys.argv[0])
+
+    logFile = str(sys.argv[1])
+    windowSize = int(sys.argv[2])
+    typeOfLog = str(sys.argv[3])
+    directory = str(sys.argv[4])
+    windowCounter = 1
+
+    initProgram(logFile,windowSize,typeOfLog,directory,windowCounter)
+
+
