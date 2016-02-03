@@ -9,7 +9,7 @@ from scipy import interp
 import os
 import scipy.stats as st
 
-#BEST PARAMETERS FOR SVM
+#BEST PARAMETERS FOR SVM SO FAR....
 #W500. nu = 0.001 gamma = 0.00141 F1 = 0.86956
 #W250. nu = 0.008 gamma = 0.00821 F1 = 0.85106
 #
@@ -20,6 +20,7 @@ if len(sys.argv) < 3:
 path = str(sys.argv[1])
 pathAttacks = str(sys.argv[2])
 
+#reading all the data from directory
 dataset = None
 flag = 0
 for file in os.listdir(path):
@@ -34,6 +35,7 @@ for file in os.listdir(path):
     		dataset = np.concatenate((dataset,dataset2),axis=0)	
     	
 #print len(dataset)
+#readin all attacks from directory
 datasetAbnormal = None
 flag = 0
 for file in os.listdir(pathAttacks):
@@ -47,19 +49,14 @@ for file in os.listdir(pathAttacks):
 			datasetAbnormal = np.concatenate((datasetAbnormal,dataset3),axis=0)
         
 
-#X = dataset[:,1:20]
-#X = dataset[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20]]
-
-#X = dataset[:,[3,4,6,12,13,14,15,16,17,18,19,20]] #84/9216 (normal) 12/41 (abnormal)
-#X = dataset[:,[3,4,5,6,12,13,14,15,16,17,18,19,20]] #86/9216 (normal) 8/41 (abnormal)
-#X = dataset[:,[3,4,5,6,12,13,14]] #86/9216 (normal) 3/41 (abnormal)
+#Features considered
 X = dataset[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]]
 
 #X = dataset[:,[1,2]]#,14,15,16,17,18,20]]
 
 y = dataset[:,21]
 
-#print X
+#Normalazing data....
 scaler = preprocessing.StandardScaler().fit(X)
 #print scaler #scaler contains info about the scaling parameters
 
@@ -71,8 +68,9 @@ SX = scaler.transform(X) #print  SX #SX the X data catually scaled
 X_train, X_test, y_train, y_test = train_test_split(SX, y, test_size=.4,
                                                     random_state=0)
 # Now scaling abnormal behaviour
-#AX = datasetAbnormal[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20]]
-AX = datasetAbnormal[:,[3,4,5,6,12,13,14]]
+
+# Features of the attack
+
 AX = datasetAbnormal[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]]
 #AX = datasetAbnormal[:,[1,2]]#,14,15,16,17,18,20]]
 Ay = datasetAbnormal[:,21]
@@ -82,11 +80,8 @@ SAX = scaler.transform(AX)
 #print len(SAX)
 ###
 
-#_nu = 0.0008
-#_gamma = 0.00821
-
-_nu = 0.001
-_gamma = 0.00141
+_nu = 0.001 # Replace with you own nu
+_gamma = 0.00141 # Replace with your own gamma
 
 
 
@@ -120,10 +115,11 @@ print "Precision = ",str(precision)
 print "recall = ",str(recall)
 print "F1 = +",str(f1)
 
-#exit()
 
 
-# ### at this point we should concatenate abnormal and normal behaviour
+
+# Now plotting ROC curves...
+
 # X_test_and_abnormal = np.concatenate((X_test,SAX),axis=0)
 # y_test_and_abnormal = np.concatenate((y_test,Ay),axis=0)
 
