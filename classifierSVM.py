@@ -14,11 +14,16 @@ import scipy.stats as st
 #W250. nu = 0.008 gamma = 0.00821 F1 = 0.85106
 #
 
-if len(sys.argv) < 3:
-    sys.exit('Usage: %s    path-of-training-files    path-of-abnormal-files' % sys.argv[0])
+if len(sys.argv) < 5:
+    sys.exit('Usage: %s    path-of-training-files    path-of-abnormal-files     nu      gamma' % sys.argv[0])
 
 path = str(sys.argv[1])
 pathAttacks = str(sys.argv[2])
+_nu = float(sys.argv[3])
+_gamma = float(sys.argv[4])
+#_nu = 0.001 # Replace with you own nu
+#_gamma = 0.00001 # Replace with your own gamma
+
 
 #reading all the data from directory
 dataset = None
@@ -50,7 +55,7 @@ for file in os.listdir(pathAttacks):
         
 
 #Features considered
-X = dataset[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]]
+X = dataset[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20]]
 
 #X = dataset[:,[1,2]]#,14,15,16,17,18,20]]
 
@@ -66,12 +71,12 @@ scaler = preprocessing.StandardScaler().fit(X)
 SX = scaler.transform(X) #print  SX #SX the X data catually scaled
 
 X_train, X_test, y_train, y_test = train_test_split(SX, y, test_size=.4,
-                                                    random_state=0)
+                                                    random_state=42)
 # Now scaling abnormal behaviour
 
 # Features of the attack
 
-AX = datasetAbnormal[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]]
+AX = datasetAbnormal[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20]]
 #AX = datasetAbnormal[:,[1,2]]#,14,15,16,17,18,20]]
 Ay = datasetAbnormal[:,21]
 
@@ -80,43 +85,40 @@ SAX = scaler.transform(AX)
 #print len(SAX)
 ###
 
-_nu = 0.001 # Replace with you own nu
-_gamma = 0.00141 # Replace with your own gamma
-
-
-
 #clf = svm.OneClassSVM(nu=0.001, kernel="rbf", gamma=0.0001) #hasta ahora mejor resultado
 clf = svm.OneClassSVM(nu=_nu, kernel="rbf", gamma=_gamma)
 #clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=0.012) #W 500 real attack
 clf.fit(X_train)
 y_pred_train = clf.predict(X_train)
+n_error_train = y_pred_train[y_pred_train == -1].size
+###
 y_pred_test = clf.predict(X_test)
 y_pred_outliers = clf.predict(SAX) ## predicting for abnormal behaviour
-n_error_train = y_pred_train[y_pred_train == -1].size
-#print n_error_train
-n_error_test = y_pred_test[y_pred_test == -1].size
 
+n_error_test = y_pred_test[y_pred_test == -1].size
 n_error_outliers = y_pred_outliers[y_pred_outliers == 1].size ## counting errors abnormal behaviour
 
-#print y_pred_outliers
 
-#print "FP_Training = ", str(n_error_train) ,"/", len(X_train)
-print "FP_Test = ", str(n_error_test),"/",len(X_test)
-print "FN_Attack = ",str(n_error_outliers),"/",len(SAX)
+print "FP_Test(false alarm) = ", str(n_error_test),"/",len(X_test)
+print "FN_Attack(missing alarm) = ",str(n_error_outliers),"/",len(SAX)
 
 tp = len(SAX)-n_error_outliers
 precision = float(tp)/(tp+n_error_test)
 recall = float(tp)/(tp+n_error_outliers)
 
-
-f1 = 2*((precision*recall)/(precision+recall))
-
 print "Precision = ",str(precision)
 print "recall = ",str(recall)
-print "F1 = +",str(f1)
+f1 = 2*((precision*recall)/(precision+recall))
 
+print "F1 = ",str(f1)
+print "-----"
+fp = (float(n_error_test)/len(X_test))*100
+fn = (float(n_error_outliers)/len(SAX))*100
+tp = 100-fn
+tn = 100-fp
 
-
+print "TP = ", tp,"% FP = ",fp,"%"
+print "FN = ",fn,"% TN = ",tn,"%"
 
 # Now plotting ROC curves...
 

@@ -60,7 +60,7 @@ def segmentation(matrix,ipIndex,domainIndex):
             #print matrix[cellIndexes[0]][cellIndexes[1]]
             if matrix[cellIndexes[0]][cellIndexes[1]] > 0:
                 squareAdd+=1
-        if squareAdd >= 3: # if square is 50% of ones flag square as 1
+        if squareAdd >= 3: # if square is 75% of ones flag square as 1
             #print "group"
             tempList.append(1)
         else:

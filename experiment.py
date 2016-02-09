@@ -83,7 +83,7 @@ AX = datasetAbnormal[:,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20]]
 Ay = datasetAbnormal[:,21]
 SAX = scaler.transform(AX)
 
-AX_test, AX_val, Ay_test,Ay_val = train_test_split(AX,Ay,test_size=0.5,random_state=0)
+AX_test, AX_val, Ay_test,Ay_val = train_test_split(SAX,Ay,test_size=0.5,random_state=0)
 
 
 f1Max = -1111111
@@ -106,7 +106,7 @@ for _nu in [0.5,0.1,0.01,0.001,0.002,0.0009,0.0008]:
         n_error_outliers = y_pred_outliers[y_pred_outliers == 1].size ## counting errors abnormal behaviour
 
         
-        tp = len(SAX)-n_error_outliers
+        tp = len(AX_test)-n_error_outliers
         precision = float(tp)/(tp+n_error_test)
         recall = float(tp)/(tp+n_error_outliers)
 
