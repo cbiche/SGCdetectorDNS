@@ -84,7 +84,6 @@ Ay = datasetAbnormal[:,21]
 SAX = scaler.transform(AX)
 #print len(SAX)
 ###
-
 #clf = svm.OneClassSVM(nu=0.001, kernel="rbf", gamma=0.0001) #hasta ahora mejor resultado
 clf = svm.OneClassSVM(nu=_nu, kernel="rbf", gamma=_gamma)
 #clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=0.012) #W 500 real attack
@@ -97,7 +96,6 @@ y_pred_outliers = clf.predict(SAX) ## predicting for abnormal behaviour
 
 n_error_test = y_pred_test[y_pred_test == -1].size
 n_error_outliers = y_pred_outliers[y_pred_outliers == 1].size ## counting errors abnormal behaviour
-
 
 print "FP_Test(false alarm) = ", str(n_error_test),"/",len(X_test)
 print "FN_Attack(missing alarm) = ",str(n_error_outliers),"/",len(SAX)
@@ -120,7 +118,7 @@ tn = 100-fp
 print "TP = ", tp,"% FP = ",fp,"%"
 print "FN = ",fn,"% TN = ",tn,"%"
 
-# Now plotting ROC curves...
+# # Now plotting ROC curves...
 
 # X_test_and_abnormal = np.concatenate((X_test,SAX),axis=0)
 # y_test_and_abnormal = np.concatenate((y_test,Ay),axis=0)
@@ -134,16 +132,48 @@ print "FN = ",fn,"% TN = ",tn,"%"
 # fpr,tpr,_ = roc_curve(y_test_and_abnormal,y_score,1)
 # roc_auc = auc(fpr, tpr)
 
+y_score = clf.decision_function(X_test)
+y_score_abnormal = clf.decision_function(SAX)
 
-# plt.figure()
-# plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-# plt.plot([0, 1], [0, 1], 'k--')
-# plt.xlim([0.0, 1.0])
-# plt.ylim([0.0, 1.05])
-# plt.xlabel('False Positive Rate')
-# plt.ylabel('True Positive Rate')
-# plt.title('Receiver operating characteristic')
-# plt.legend(loc="lower right")
-# plt.show()
+fpr = []
+tpr = []
+x = np.concatenate((y_score,y_score_abnormal),axis=0)
+sortedX = sorted(range(len(x)), key=lambda k: x[k])
+y = np.concatenate((y_test,Ay),axis=0)
+#print y
+#exit()
+for j in sortedX:
+    t = x[j]
+    #print t
+    numFP = 0
+    numTP = 0
+    for i in range(0,len(x)):
+        if x[i] <= t:
+            if y[i] == -1:
+                numTP+=1.0
+                #print "ss"
+            else:
+                numFP+=1.0
+    fpr.append(numFP/len(X_test))
+    tpr.append(numTP/len(SAX))
+
+    #print fpr,tpr
+
+#fpr,tpr,_ = roc_curve(np.concatenate((y_test,Ay),axis=0),np.concatenate((y_score,y_score_abnormal),axis=0))#,1)
+#fpr,tpr,_ = roc_curve(Ay,y_score_abnormal)
+
+#print tpr
+#print fpr
+roc_auc = auc(fpr, tpr)
+plt.figure()
+plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic')
+plt.legend(loc="lower right")
+plt.show()
 
 
