@@ -71,7 +71,7 @@ scaler = preprocessing.StandardScaler().fit(X)
 SX = scaler.transform(X) #print  SX #SX the X data catually scaled
 
 X_train, X_test, y_train, y_test = train_test_split(SX, y, test_size=.4,
-                                                    random_state=42)
+                                                    random_state=2)
 # Now scaling abnormal behaviour
 
 # Features of the attack
@@ -132,48 +132,48 @@ print "FN = ",fn,"% TN = ",tn,"%"
 # fpr,tpr,_ = roc_curve(y_test_and_abnormal,y_score,1)
 # roc_auc = auc(fpr, tpr)
 
-y_score = clf.decision_function(X_test)
-y_score_abnormal = clf.decision_function(SAX)
+# y_score = clf.decision_function(X_test)
+# y_score_abnormal = clf.decision_function(SAX)
 
-fpr = []
-tpr = []
-x = np.concatenate((y_score,y_score_abnormal),axis=0)
-sortedX = sorted(range(len(x)), key=lambda k: x[k])
-y = np.concatenate((y_test,Ay),axis=0)
-#print y
-#exit()
-for j in sortedX:
-    t = x[j]
-    #print t
-    numFP = 0
-    numTP = 0
-    for i in range(0,len(x)):
-        if x[i] <= t:
-            if y[i] == -1:
-                numTP+=1.0
-                #print "ss"
-            else:
-                numFP+=1.0
-    fpr.append(numFP/len(X_test))
-    tpr.append(numTP/len(SAX))
+# fpr = []
+# tpr = []
+# x = np.concatenate((y_score,y_score_abnormal),axis=0)
+# sortedX = sorted(range(len(x)), key=lambda k: x[k])
+# y = np.concatenate((y_test,Ay),axis=0)
+# #print y
+# #exit()
+# for j in sortedX:
+#     t = x[j]
+#     #print t
+#     numFP = 0
+#     numTP = 0
+#     for i in range(0,len(x)):
+#         if x[i] <= t:
+#             if y[i] == -1:
+#                 numTP+=1.0
+#                 #print "ss"
+#             else:
+#                 numFP+=1.0
+#     fpr.append(numFP/len(X_test))
+#     tpr.append(numTP/len(SAX))
 
-    #print fpr,tpr
+#     #print fpr,tpr
 
-#fpr,tpr,_ = roc_curve(np.concatenate((y_test,Ay),axis=0),np.concatenate((y_score,y_score_abnormal),axis=0))#,1)
-#fpr,tpr,_ = roc_curve(Ay,y_score_abnormal)
+# #fpr,tpr,_ = roc_curve(np.concatenate((y_test,Ay),axis=0),np.concatenate((y_score,y_score_abnormal),axis=0))#,1)
+# #fpr,tpr,_ = roc_curve(Ay,y_score_abnormal)
 
-#print tpr
-#print fpr
-roc_auc = auc(fpr, tpr)
-plt.figure()
-plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.plot([0, 1], [0, 1], 'k--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver operating characteristic')
-plt.legend(loc="lower right")
-plt.show()
+# #print tpr
+# #print fpr
+# roc_auc = auc(fpr, tpr)
+# plt.figure()
+# plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+# plt.plot([0, 1], [0, 1], 'k--')
+# plt.xlim([0.0, 1.0])
+# plt.ylim([0.0, 1.05])
+# plt.xlabel('False Positive Rate')
+# plt.ylabel('True Positive Rate')
+# plt.title('Receiver operating characteristic')
+# plt.legend(loc="lower right")
+# plt.show()
 
 
